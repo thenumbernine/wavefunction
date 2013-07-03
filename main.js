@@ -17,7 +17,7 @@ var R = new function() {
 
 		//get gl context
 
-		gl = GL.init(canvas, {debug:true});
+		gl = GL.init(canvas);
 		GL.view.fovY = 45;
 		//GL.onfps = function(fps) { $('#fps').text(fps + ' fps'); };
 		
@@ -54,7 +54,6 @@ var R = new function() {
 		
 		gl.activeTexture(gl.TEXTURE0);
 		gl.clearColor(0,0,0,1);
-		gl.enable(gl.DEPTH_TEST);
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 

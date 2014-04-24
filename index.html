@@ -29,41 +29,7 @@ _gaq.push(['_trackPageview']);
 	var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
 })();
 </script>
-
-		<script id='vsh' type='x-shader/x-vertex'>
-attribute vec3 vtx;
-uniform mat4 mvMat;
-uniform mat4 projMat;
-varying vec3 pos;
-void main() {	
-	pos = vtx;
-	gl_Position = projMat * mvMat * vec4(vtx, 1.0); 
-}
-		</script>
-		<script id='fsh' type='x-shader/x-fragment'>
-precision mediump float;
-varying vec3 pos;
-uniform sampler2D volTex, hsvTex;
-uniform float dz;
-uniform float solidThreshold;
-uniform float alphaGamma;
-uniform float valueAlpha;
-void main() { 
-	float value = texture2D(volTex, vec2(pos.xy * .5 + .5)).r;
-	gl_FragColor = texture2D(hsvTex, vec2(value, .5));
-	if (value > solidThreshold) {
-		gl_FragColor.w = 1.;
-	} else {
-		//alpha gamma: dz := dz ^ (gamma / (1+epsilon - gamma))
-		gl_FragColor.w = pow(dz, alphaGamma / (1.0001 - alphaGamma));
-		//valueAlpha = 0 : alpha is constant(alphaGamma)
-		//valueAlpha = 1 : alpha is a function of value such that value 0 <=> nothing, value 1 <=> original alpha
-		gl_FragColor.w *= mix(value, 1., valueAlpha);
-	}
-	
-	//gl_FragColor = vec4(texture2D(volTex, pos.xy*.5+.5).rgb, 1.);
-}
-		</script>
+		
 		<style type='text/css'>
 body {
 	background-color:black;
@@ -92,7 +58,12 @@ a:active {
 		</style>
 	</head>
 	<body style='margin:0px'>
-		<div id='controls' style='width:200; position:absolute; left:0px; top:0px; background-color:rgba(0,0,0,.25)'>
+		<div id='menu' style='position:absolute'>
+			<img id='panelButton' src='menu.png' style='padding:5px'/>
+			<button id='infoButton' style='background-color:black; color:white; width:24px; height:24px; border:1px solid white; cursor:pointer; display:table-cell; align:center; vertical-align:top; margin:5px'>?</button><br>
+		</div>
+	
+		<div id='panel' style='overflow:scroll; z-index:1; position:absolute; top:32px; padding:20px; display:none'>
 			<div id='fps'></div>
 			Solid Threshold:
 			<div id='solid-threshold-slider'></div>
@@ -102,10 +73,14 @@ a:active {
 			<div id='value-alpha-slider'></div>
 			Eigenstate:
 			<div><select id='permutations'></select></div>
-			<div id='show-calculating'>
-				Calculating: 
-				<progress id='calculating' max='100' value='0'></progress>
-			</div>
+		</div>
+
+		<div id='show-calculating' style='float:right; padding:10px'>
+			Calculating: 
+			<progress id='calculating' max='100' value='0'></progress>
+		</div>
+
+		<div id='info' style='display:none; overflow:scroll; top:32px; z-index:1; position:absolute; background-color:rgba(255,255,255,.85); color:black; padding:10px'>
 		</div>
 	</body>
 </html>

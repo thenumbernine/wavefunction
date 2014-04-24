@@ -17,7 +17,15 @@ var R = new function() {
 
 		//get gl context
 
-		gl = GL.init(canvas);
+		try {
+			gl = GL.init(canvas);
+		} catch (e) {
+			$(canvas).remove();
+			$('#webglfail').show();
+			throw e;
+		}
+		$('#menu').show();
+
 		GL.view.fovY = 45;
 		//GL.onfps = function(fps) { $('#fps').text(fps + ' fps'); };
 		
@@ -29,8 +37,41 @@ var R = new function() {
 		//create shaders
 
 		shader = new GL.ShaderProgram({
-			vertexCodeID : 'vsh',
-			fragmentCodeID : 'fsh',
+			vertexPrecision : 'best',
+			vertexCode : mlstr(function(){/*
+attribute vec3 vtx;
+uniform mat4 mvMat;
+uniform mat4 projMat;
+varying vec3 pos;
+void main() {	
+	pos = vtx;
+	gl_Position = projMat * mvMat * vec4(vtx, 1.0); 
+}
+*/}),
+			fragmentPrecision : 'best',
+			fragmentCode : mlstr(function(){/*
+varying vec3 pos;
+uniform sampler2D volTex, hsvTex;
+uniform float dz;
+uniform float solidThreshold;
+uniform float alphaGamma;
+uniform float valueAlpha;
+void main() { 
+	float value = texture2D(volTex, vec2(pos.xy * .5 + .5)).r;
+	gl_FragColor = texture2D(hsvTex, vec2(value, .5));
+	if (value > solidThreshold) {
+		gl_FragColor.w = 1.;
+	} else {
+		//alpha gamma: dz := dz ^ (gamma / (1+epsilon - gamma))
+		gl_FragColor.w = pow(dz, alphaGamma / (1.0001 - alphaGamma));
+		//valueAlpha = 0 : alpha is constant(alphaGamma)
+		//valueAlpha = 1 : alpha is a function of value such that value 0 <=> nothing, value 1 <=> original alpha
+		gl_FragColor.w *= mix(value, 1., valueAlpha);
+	}
+	
+	//gl_FragColor = vec4(texture2D(volTex, pos.xy*.5+.5).rgb, 1.);
+}
+*/}),
 			uniforms : {
 				dz : 1/wavefunction.dim,
 				volTex : 0,
@@ -71,6 +112,12 @@ var R = new function() {
 					[dy, dx, 0]);
 				//mat4.translate(mvMat, mvMat, [10*dx/canvas.width, -10*dy/canvas.height, 0]);
 				mat4.mul(rotMat, tmpRotMat, rotMat);
+				GL.draw();
+			},
+			zoom : function(dz) {
+				GL.view.fovY *= Math.exp(-.0003 * dz);
+				GL.view.fovY = Math.clamp(GL.view.fovY, 1, 179);
+				GL.updateProjection();
 				GL.draw();
 			}
 		});
@@ -209,7 +256,7 @@ function hydrogen(result, r, theta, phi, n, l, m) {
 }
 
 var wavefunction = new function() {
-	this.dim = 64;
+	this.dim = 256;
 	this.n = 4;	//orbit param
 	this.l = 2;	//sh param
 	this.m = 0;	//sh param
@@ -341,6 +388,26 @@ var slideThreshold = 1.;
 var alphaGamma = .25;
 var valueAlpha = 0.;
 $(document).ready(function() {
+	$('#panelButton').click(function() {
+		var panel = $('#panel');	
+		if (panel.css('display') == 'none') {
+			panel.show();
+			$('#info').hide();
+		} else {
+			panel.hide();
+		}
+	});
+	$('#infoButton').click(function() {
+		var info = $('#info');
+		if (info.css('display') == 'none') {
+			info.show();
+			$('#panel').hide();
+		} else {
+			info.hide();
+		}
+	});
+	
+	
 	$('#solid-threshold-slider').slider({
 		range : 'max',
 		width : '200px',
@@ -377,7 +444,29 @@ $(document).ready(function() {
 
 	R.init();
 
-	adjustSize();
+	//N goes from 0 to 5, L goes from 0 to N-1, M goes from -L to L
+	var waveparams = {};
+	var permutations = $('#permutations');
+	for (var n = 0; n <= 5; ++n) {
+		for (var l = 0; l < n; ++l) {
+			for (var m = -l; m <= l; ++m) {
+				var text = 'N='+n+' L='+l+' M='+m;
+				var option = $('<option>', {text:text});
+				option.appendTo(permutations);
+				if (n == wavefunction.n && l == wavefunction.l && m == wavefunction.m) {
+					option.attr('selected', 'true');
+				}
+				waveparams[text] = {n:n, l:l, m:m};
+			}
+		}
+	}
+	permutations.change(function() {
+		var params = waveparams[permutations.val()];
+		wavefunction.n = params.n; 
+		wavefunction.l = params.l; 
+		wavefunction.m = params.m; 
+		wavefunction.rebuild(); 
+	});
 
 	GL.ondraw = function() {
 		if (!wavefunction.ready) return;
@@ -441,44 +530,25 @@ $(document).ready(function() {
 	
 	wavefunction.init();
 
+	resize();
 })
 
-function adjustSize() {
+function resize() {
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
-	var controls = $('#controls');
-	controls.height(window.innerHeight);
-
-	//N goes from 0 to 5, L goes from 0 to N-1, M goes from -L to L
-	var waveparams = {};
-	var permutations = $('#permutations');
-	for (var n = 0; n <= 5; ++n) {
-		for (var l = 0; l < n; ++l) {
-			for (var m = -l; m <= l; ++m) {
-				var text = 'N='+n+' L='+l+' M='+m;
-				var option = $('<option>', {text:text});
-				option.appendTo(permutations);
-				if (n == wavefunction.n && l == wavefunction.l && m == wavefunction.m) {
-					option.attr('selected', 'true');
-				}
-				waveparams[text] = {n:n, l:l, m:m};
-			}
-		}
-	}
-	permutations.change(function() {
-		var params = waveparams[permutations.val()];
-		wavefunction.n = params.n; 
-		wavefunction.l = params.l; 
-		wavefunction.m = params.m; 
-		wavefunction.rebuild(); 
-	});
-	
 	GL.resize();
-}
-
-function resize() {
-	adjustSize();
 	GL.draw();
+
+	var info = $('#info');
+	var width = window.innerWidth 
+		- parseInt(info.css('padding-left'))
+		- parseInt(info.css('padding-right'));
+	info.width(width);
+	var height = window.innerHeight
+		- parseInt(info.css('padding-top'))
+		- parseInt(info.css('padding-bottom'));
+	info.height(height - 32);
+
 }
 
 function drawQuad(mv) {

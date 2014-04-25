@@ -25,6 +25,13 @@ var R = new function() {
 			throw e;
 		}
 		$('#menu').show();
+		
+//not ready yet
+$('#infoButton').hide();
+if ($.url().param('show')) {
+	$('#infoButton').show();
+	$('#info').show();
+}
 
 		GL.view.fovY = 45;
 		//GL.onfps = function(fps) { $('#fps').text(fps + ' fps'); };
@@ -256,7 +263,7 @@ function hydrogen(result, r, theta, phi, n, l, m) {
 }
 
 var wavefunction = new function() {
-	this.dim = 256;
+	this.dim = 64;
 	this.n = 4;	//orbit param
 	this.l = 2;	//sh param
 	this.m = 0;	//sh param

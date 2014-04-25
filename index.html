@@ -1,16 +1,18 @@
 <html>
 	<head>
 		<title>Hydrogen Wavefunction - WebGL</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
 		<meta name='apple-mobile-web-app-capable' content='yes'/>
 		<meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'/>
 		
 		<link rel='stylesheet' href='themes/base/jquery.ui.all.css'></link>
 
 		<script type='text/javascript' src='/js/jquery-1.10.0.min.js'></script>
+		<script type='text/javascript' src='/js/purl.js'></script>
 		<script src='ui/jquery.ui.widget.js'></script>
 		<script src='ui/jquery.ui.mouse.js'></script>
 		<script src='ui/jquery.ui.slider.js'></script>
+		<script type='text/javascript' src='http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 		<script type='text/javascript' src='/js/gl-matrix.2.2.0.min.js'></script>
 		<script type='text/javascript' src='/js/webgl-debug.js'></script>
 		<script type='text/javascript' src='/js/util.js'></script>
@@ -81,6 +83,59 @@ a:active {
 		</div>
 
 		<div id='info' style='display:none; overflow:scroll; top:32px; z-index:1; position:absolute; background-color:rgba(255,255,255,.85); color:black; padding:10px'>
+			Particles are traditionally treated as points that can be found at some position in 3-dimensional space for a given time.
+			However when looking closer at the makeup of a particle we find the makeup consists of a bit more than a mere point.
+			We'll consider the makeup of a particle to be some unknown function \( \psi \) that is a function of its position in space: \( \psi = \psi(x,y,z) \).
+			More on this later.<br>
+			<br>
+			Leaving the makeup ambiguous for the time being, we can say that there are properties of the particle that can be observed from it.  These are called, 'observables.'<br>
+			<h3>Operators</h3>
+			Operator \( {\hat A}(\psi) \) has expected value \( \langle A \rangle_\psi = {{\langle \psi, {\hat A}(\psi) \rangle} \over {\langle \psi, \psi \rangle}} \).<br>
+			For continuous real functions we have an inner product \( \langle f, g \rangle = \int_{\mathbb{R}^3} (f^* \cdot g) dx \)
+				and our expected value of a normalized function is \( \langle A \rangle_\psi = \int_{\mathbb{R}^3} (\psi^* \cdot A \psi) dx \).<br>
+			The density of the particle is given by \( \rho = |\psi|^2 = \langle \psi, \psi \rangle  \).<br>
+			If \( {\langle \psi, \psi \rangle} = 1 \) then the function \( \psi \) is said to be normalized 
+				and the expected value simplifies to \( \langle A \rangle_\psi = \langle \psi, {\hat A}(\psi) \rangle \).<br>
+			Once the function is normalized, the probability of finding the particle in a certain location is \( \int_S |\psi|^2 dx \).<br>
+			<h3>Observables</h3>
+			The observation of the position is \( {\hat x}(\psi) = x \cdot \psi \).<br>
+			For the i'th dimension, \( {\hat x}^i(\psi) = x^i \cdot \psi \).
+			In other words, \( {\hat x}(\psi) = x \cdot \psi \), \( {\hat y}(\psi) = y \cdot \psi \), and \( {\hat z}(\psi) = z \cdot \psi \). <br>
+			<br>
+			The expected value of the measurement of a particle's position is denoted \( \langle x \rangle \) and calculated as \( \langle x \rangle = \int x |\psi|^2 dx \).<br>
+			The observation of the momentum along the x-direction, called the momentum operator, is denoted \( {\hat p_x}(\psi) = -i \hbar  \nabla_x \psi \) for \( \hbar = {h \over {2 \pi}} \) and for h representing Planck length.<br>
+			The momentum observation along the i'th dimension is \( {\hat p}_i(\psi) = -i \hbar \nabla_i \psi \).
+			Shorthand, \( {\hat p}_i = -i \hbar \nabla_i \).<br>
+			To compute the momentum along a normal: \( n^i {\hat p}_i = -i \hbar n^i \nabla_i \).<br>
+			<br>
+			In classical mechanics, the total energy in a system is H (for "Hamiltonian") and is defined as \( H = T + V \) for kinetic energy T and potential energy V.<br>
+			Kinetic energy is defined as \(T = {1 \over 2} m v^2 \).<br>
+			Momentum is defined as \( p = mv \).
+			From there we can calculate 
+			\( T = {1 \over 2} m ({p \over m})^2 = {p^2 \over {2 m}} \).<br>
+			Potential energy, V, is left undefined.<br>
+			<br>
+			In quantum mechanics things work the same, but with operators replacing variables.  Total energy is \( {\hat H} = {\hat T} + {\hat V} \).<br>
+			Kinetic energy is defined as<br>
+			\({\hat T} = {1 \over {2 m}} ({\hat p}_i)^2 \).<br>
+			\({\hat T} = {1 \over {2 m}} ({\hat p}_x^2 + {\hat p}_y^2 + {\hat p}_z^2) \).<br>
+			\({\hat T} = {1 \over {2 m}} ((-i \hbar \nabla_x)^2 + (-i \hbar \nabla_y)^2 + (-i \hbar \nabla_z)^2) \).<br>
+			\({\hat T} = -{{\hbar^2} \over {2 m}} (\nabla_x^2 + \nabla_y^2 + \nabla_z^2) \).<br>
+			\({\hat T} = -{{\hbar^2} \over {2 m}} (\nabla_i)^2 \).<br>
+			Potential energy is considered a multiplicative operator that is a function of position alone.<br>
+			From this our total energy operator becomes \( {\hat H} = {\hat T} + {\hat V} = -{{\hbar^2} \over {2 m}} \nabla_i^2 + {\hat V} \).<br>
+			<br>
+			Angular Momentum.
+			\( J^k = \epsilon_{ijk} x^i p_j \).  I'll reconcile index gymnastics later.<br>
+			For example, \( J^x = {\hat y} {\hat p}_z - {\hat z} {\hat p}_y \).<br>
+			<br>
+			To apply the momentum operator, consider the wavefunction \( \psi = e^{i(a_i x^i)/\hbar} \). Then<br>
+			\( {\hat p}_j \psi = -i \hbar \nabla_j e^{i(a_i x^i)/\hbar} \)<br>
+			\( {\hat p}_j \psi = -i \hbar \cdot i / \hbar a_j e^{i(a_i x^i)/\hbar} \)<br>
+			\( {\hat p}_j \psi = a_j \psi \)<br>
+			\( {\hat p}_j = a_j \)<br>
+			This says that our particular choice of \( \psi = e^{i(a_i x^i)/\hbar} \) is an eigenvector of \( {\hat p}_j \), with associated eigenvalue \( a_j \).
+			In such a state the kinetic energy measured is \( {\hat T} = {{\hat p}_i^2 \over {2m}} \).<br>
 		</div>
 	</body>
 </html>

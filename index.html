@@ -136,6 +136,28 @@ a:active {
 			\( {\hat p}_j = a_j \)<br>
 			This says that our particular choice of \( \psi = e^{i(a_i x^i)/\hbar} \) is an eigenvector of \( {\hat p}_j \), with associated eigenvalue \( a_j \).
 			In such a state the kinetic energy measured is \( {\hat T} = {{\hat p}_i^2 \over {2m}} \).<br>
+
+			<h3>Hydrogen Atom</h3>
+			
+			Associated Legendre Function: \( P^m_l(t) = {{(1 - t^2)^{m/2}} \over {2^l l!}} {{d^{l+m}} \over {dt^{l+m}}} (t^2 - 1)^l \)<br>
+			potential: \( V(r) = - {{Z e^2} \over {r}} \)<br>
+			\(Z = {1 \over {4 \pi \epsilon_0}} \)<br>
+			Bohr radius: \( a_0 = 0.527 \times 10^{-10} \)<br>
+			<br>
+			<h3>Radial Solution</h3>
+			\( n = 1, 2, 3, ... \) <br>
+			\( l = 0, 1, 2, ..., n - 1 \)<br>
+			energy eigenvalues: \( E_n = - {{\mu Z^2 e^4} \over {2 \hbar^2 n^2}} \)<br>
+			\( \alpha_n = {1 \over {n a_0}} \)<br>
+			\( c_j = \left [ {{2 \alpha_n (j-n)} \over {j(j+1) - l(l+1)}} \right ] c_{j-1} \)<br>
+			\( p_{nl}(r) = c_l r^l + c_{l+1} r^{l+1} + ... + c_{n-1} r^{n-1} \)<br>
+			radial solution: \( R_{nl}(r) = p_{nl}(r) e^{-\alpha_n r} \) <br>
+			<br>
+			<h3>Hydrogen Atom</h3>
+			\( n = 1, 2, 3, ... \) <br>
+			\( l = 0, 1, 2, ..., n - 1 \)<br>
+			\( m = -l, ..., -1, 0, 1, ..., l \)<br>
+			wavefunction: \( \psi_{nlm}(r,\theta,\phi) = R_{nl}(r) P^m_l(cos(\theta)) e^{im\phi} \)<br>
 		</div>
 	</body>
 </html>

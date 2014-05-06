@@ -26,13 +26,6 @@ var R = new function() {
 		}
 		$('#menu').show();
 		
-//not ready yet
-$('#infoButton').hide();
-if ($.url().param('show')) {
-	$('#infoButton').show();
-	$('#info').show();
-}
-
 		GL.view.fovY = 45;
 		//GL.onfps = function(fps) { $('#fps').text(fps + ' fps'); };
 		

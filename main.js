@@ -19,9 +19,8 @@ var R = new function() {
 		//get gl context
 
 		try {
-			GL.init(canvas);
-			renderer = GL.canvasRenderer;
-			gl = renderer.gl;
+			renderer = new GL.CanvasRenderer({canvas:canvas});
+			gl = renderer.context;
 		} catch (e) {
 			$(canvas).remove();
 			$('#webglfail').show();
@@ -40,6 +39,7 @@ var R = new function() {
 		//create shaders
 
 		shader = new GL.ShaderProgram({
+			context : gl,
 			vertexPrecision : 'best',
 			vertexCode : mlstr(function(){/*
 attribute vec3 vtx;
@@ -92,7 +92,10 @@ void main() {
 			1,-1,0,
 		];
 		
-		vtxBuf = new GL.ArrayBuffer({data:vtxs});
+		vtxBuf = new GL.ArrayBuffer({
+			context : gl,
+			data : vtxs
+		});
 		
 		//init draw
 		
@@ -269,14 +272,15 @@ var wavefunction = new function() {
 	vec3.sub(this.size, this.max, this.min);
 	this.init = function() {
 		this.hsvTex = new GL.GradientTexture({
-			width:256, 
-			colors:[
-				[0,0,0],
-				[0,0,1],
-				[1,0,1],
-				[1,0,0],
-				[1,1,0],
-				[1,1,1]
+			context : gl,
+			width : 256, 
+			colors : [
+				[0, 0, 0],
+				[0, 0, 1],
+				[1, 0, 1],
+				[1, 0, 0],
+				[1, 1, 0],
+				[1, 1, 1]
 			],
 			dontRepeat : true
 		});
@@ -288,7 +292,9 @@ var wavefunction = new function() {
 			var dim2 = (dim+2)%3;
 			for (var w = 0; w < this.dim; w++) {
 				var slice = {}; 
-				slice.tex = new GL.Texture2D();
+				slice.tex = new GL.Texture2D({
+					context : gl,
+				});
 				this.slices[dim].push(slice);
 			}
 		}

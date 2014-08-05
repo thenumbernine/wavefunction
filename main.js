@@ -1,9 +1,10 @@
 //populated in R.init
+var gl;
+var renderer;
 var canvas;
 var rotMat;
 var shader;
 var vtxBuf;
-var gl;
 var mouse;
 
 var R = new function() {
@@ -18,7 +19,9 @@ var R = new function() {
 		//get gl context
 
 		try {
-			gl = GL.init(canvas);
+			GL.init(canvas);
+			renderer = GL.canvasRenderer;
+			gl = renderer.gl;
 		} catch (e) {
 			$(canvas).remove();
 			$('#webglfail').show();
@@ -26,13 +29,13 @@ var R = new function() {
 		}
 		$('#menu').show();
 		
-		GL.view.fovY = 45;
-		//GL.onfps = function(fps) { $('#fps').text(fps + ' fps'); };
+		renderer.view.fovY = 45;
+		//renderer.onfps = function(fps) { $('#fps').text(fps + ' fps'); };
 		
 		rotMat = mat4.create();
 		mat4.identity(rotMat);
 
-		GL.view.pos[2] = 3;
+		renderer.view.pos[2] = 3;
 
 		//create shaders
 
@@ -112,13 +115,13 @@ void main() {
 					[dy, dx, 0]);
 				//mat4.translate(mvMat, mvMat, [10*dx/canvas.width, -10*dy/canvas.height, 0]);
 				mat4.mul(rotMat, tmpRotMat, rotMat);
-				GL.draw();
+				renderer.draw();
 			},
 			zoom : function(dz) {
-				GL.view.fovY *= Math.exp(-.0003 * dz);
-				GL.view.fovY = Math.clamp(GL.view.fovY, 1, 179);
-				GL.updateProjection();
-				GL.draw();
+				renderer.view.fovY *= Math.exp(-.0003 * dz);
+				renderer.view.fovY = Math.clamp(renderer.view.fovY, 1, 179);
+				renderer.updateProjection();
+				renderer.draw();
 			}
 		});
 	};
@@ -378,7 +381,7 @@ var wavefunction = new function() {
 				}
 				thiz.ready = true;
 				$('#show-calculating').hide();
-				GL.draw();
+				renderer.draw();
 			}
 		});
 	};
@@ -416,7 +419,7 @@ $(document).ready(function() {
 		value : 100*(1 - slideThreshold),
 		slide : function(event, ui) {
 			slideThreshold = 1 - ui.value/100;
-			GL.draw();
+			renderer.draw();
 		}
 	});
 	$('#alpha-gamma-slider').slider({
@@ -427,7 +430,7 @@ $(document).ready(function() {
 		value : 100*(1 - alphaGamma),
 		slide : function(event, ui) {
 			alphaGamma = 1 - ui.value/100;
-			GL.draw();
+			renderer.draw();
 		}
 	});
 	$('#value-alpha-slider').slider({
@@ -438,7 +441,7 @@ $(document).ready(function() {
 		value : 100*(1 - valueAlpha),
 		slide : function(event, ui) {
 			valueAlpha = 1 - ui.value/100;
-			GL.draw();
+			renderer.draw();
 		}
 	});
 
@@ -468,16 +471,16 @@ $(document).ready(function() {
 		wavefunction.rebuild(); 
 	});
 
-	GL.ondraw = function() {
+	renderer.ondraw = function() {
 		if (!wavefunction.ready) return;
 		
 		shader.setAttr('vtx', vtxBuf);
-		shader.setUniform('projMat', GL.projMat);
+		shader.setUniform('projMat', renderer.scene.projMat);
 
 		wavefunction.hsvTex.bind(1);
 		gl.activeTexture(gl.TEXTURE0);
 		
-		mat4.multiply(viewMat, GL.mvMat, rotMat);
+		mat4.multiply(viewMat, renderer.scene.mvMat, rotMat);
 		//now pick the dir and order (front vs back)
 		// based on the major axis
 		// (highest z-component of each axis)
@@ -536,8 +539,8 @@ $(document).ready(function() {
 function resize() {
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
-	GL.resize();
-	GL.draw();
+	renderer.resize();
+	renderer.draw();
 
 	var info = $('#info');
 	var width = window.innerWidth 

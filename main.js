@@ -1,6 +1,6 @@
 //populated in R.init
 var gl;
-var renderer;
+var glutil;
 var canvas;
 var rotMat;
 var shader;
@@ -19,8 +19,8 @@ var R = new function() {
 		//get gl context
 
 		try {
-			renderer = new GL.CanvasRenderer({canvas:canvas});
-			gl = renderer.context;
+			glutil = new GLUtil({canvas:canvas});
+			gl = glutil.context;
 		} catch (e) {
 			$(canvas).remove();
 			$('#webglfail').show();
@@ -28,18 +28,17 @@ var R = new function() {
 		}
 		$('#menu').show();
 		
-		renderer.view.fovY = 45;
-		//renderer.onfps = function(fps) { $('#fps').text(fps + ' fps'); };
+		glutil.view.fovY = 45;
+		//glutil.onfps = function(fps) { $('#fps').text(fps + ' fps'); };
 		
 		rotMat = mat4.create();
 		mat4.identity(rotMat);
 
-		renderer.view.pos[2] = 3;
+		glutil.view.pos[2] = 3;
 
 		//create shaders
 
-		shader = new GL.ShaderProgram({
-			context : gl,
+		shader = new glutil.ShaderProgram({
 			vertexPrecision : 'best',
 			vertexCode : mlstr(function(){/*
 attribute vec3 vtx;
@@ -92,8 +91,7 @@ void main() {
 			1,-1,0,
 		];
 		
-		vtxBuf = new GL.ArrayBuffer({
-			context : gl,
+		vtxBuf = new glutil.ArrayBuffer({
 			data : vtxs
 		});
 		
@@ -118,13 +116,13 @@ void main() {
 					[dy, dx, 0]);
 				//mat4.translate(mvMat, mvMat, [10*dx/canvas.width, -10*dy/canvas.height, 0]);
 				mat4.mul(rotMat, tmpRotMat, rotMat);
-				renderer.draw();
+				glutil.draw();
 			},
 			zoom : function(dz) {
-				renderer.view.fovY *= Math.exp(-.0003 * dz);
-				renderer.view.fovY = Math.clamp(renderer.view.fovY, 1, 179);
-				renderer.updateProjection();
-				renderer.draw();
+				glutil.view.fovY *= Math.exp(-.0003 * dz);
+				glutil.view.fovY = Math.clamp(glutil.view.fovY, 1, 179);
+				glutil.updateProjection();
+				glutil.draw();
 			}
 		});
 	};
@@ -271,8 +269,7 @@ var wavefunction = new function() {
 	this.size = vec3.create();
 	vec3.sub(this.size, this.max, this.min);
 	this.init = function() {
-		this.hsvTex = new GL.GradientTexture({
-			context : gl,
+		this.hsvTex = new glutil.GradientTexture({
 			width : 256, 
 			colors : [
 				[0, 0, 0],
@@ -292,9 +289,7 @@ var wavefunction = new function() {
 			var dim2 = (dim+2)%3;
 			for (var w = 0; w < this.dim; w++) {
 				var slice = {}; 
-				slice.tex = new GL.Texture2D({
-					context : gl,
-				});
+				slice.tex = new glutil.Texture2D();
 				this.slices[dim].push(slice);
 			}
 		}
@@ -387,7 +382,7 @@ var wavefunction = new function() {
 				}
 				thiz.ready = true;
 				$('#show-calculating').hide();
-				renderer.draw();
+				glutil.draw();
 			}
 		});
 	};
@@ -425,7 +420,7 @@ $(document).ready(function() {
 		value : 100*(1 - slideThreshold),
 		slide : function(event, ui) {
 			slideThreshold = 1 - ui.value/100;
-			renderer.draw();
+			glutil.draw();
 		}
 	});
 	$('#alpha-gamma-slider').slider({
@@ -436,7 +431,7 @@ $(document).ready(function() {
 		value : 100*(1 - alphaGamma),
 		slide : function(event, ui) {
 			alphaGamma = 1 - ui.value/100;
-			renderer.draw();
+			glutil.draw();
 		}
 	});
 	$('#value-alpha-slider').slider({
@@ -447,7 +442,7 @@ $(document).ready(function() {
 		value : 100*(1 - valueAlpha),
 		slide : function(event, ui) {
 			valueAlpha = 1 - ui.value/100;
-			renderer.draw();
+			glutil.draw();
 		}
 	});
 
@@ -477,16 +472,16 @@ $(document).ready(function() {
 		wavefunction.rebuild(); 
 	});
 
-	renderer.ondraw = function() {
+	glutil.ondraw = function() {
 		if (!wavefunction.ready) return;
 		
 		shader.setAttr('vtx', vtxBuf);
-		shader.setUniform('projMat', renderer.scene.projMat);
+		shader.setUniform('projMat', glutil.scene.projMat);
 
 		wavefunction.hsvTex.bind(1);
 		gl.activeTexture(gl.TEXTURE0);
 		
-		mat4.multiply(viewMat, renderer.scene.mvMat, rotMat);
+		mat4.multiply(viewMat, glutil.scene.mvMat, rotMat);
 		//now pick the dir and order (front vs back)
 		// based on the major axis
 		// (highest z-component of each axis)
@@ -545,8 +540,8 @@ $(document).ready(function() {
 function resize() {
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
-	renderer.resize();
-	renderer.draw();
+	glutil.resize();
+	glutil.draw();
 
 	var info = $('#info');
 	var width = window.innerWidth 

@@ -1,20 +1,28 @@
-//populated in R.init
-var gl;
-var glutil;
-var canvas;
-var rotMat;
-var shader;
-var vtxBuf;
-var mouse;
+import {vec3, mat4} from '/js/gl-matrix-3.4.1/index.js';
+import {DOM, getIDs, removeFromParent, show, hide, hidden, asyncfor} from '/js/util.js';
+import {GLUtil} from '/js/gl-util.js';
+import {makeGradient} from '/js/gl-util-Gradient.js';
+import {Mouse3D} from '/js/mouse3d.js';
+const ids = getIDs();
+const urlparams = new URLSearchParams(window.location.search);
 
-var R = new function() {
-	var thiz = this;
+//populated in R.init
+let gl;
+let glutil;
+let canvas;
+let rotMat;
+let shader;
+let vtxBuf;
+let mouse;
+
+let R = new function() {
+	let thiz = this;
 
 	this.init = function() {
 		
 		//build dom
 
-		canvas = $('<canvas>').appendTo(document.body).get(0);
+		canvas = DOM('canvas', {appendTo:document.body});
 
 		//get gl context
 
@@ -22,14 +30,15 @@ var R = new function() {
 			glutil = new GLUtil({canvas:canvas});
 			gl = glutil.context;
 		} catch (e) {
-			$(canvas).remove();
-			$('#webglfail').show();
+			removeFromParent(canvas);
+			show(ids.webglfail);
 			throw e;
 		}
-		$('#menu').show();
+		glutil.import('Gradient', makeGradient);
+		show(ids.menu);
 		
 		glutil.view.fovY = 45;
-		//glutil.onfps = function(fps) { $('#fps').text(fps + ' fps'); };
+		//glutil.onfps = function(fps) { ids.fps.innerText = fps + ' fps'; };
 		
 		rotMat = mat4.create();
 		mat4.identity(rotMat);
@@ -38,42 +47,41 @@ var R = new function() {
 
 		//create shaders
 
-		shader = new glutil.ShaderProgram({
-			vertexPrecision : 'best',
-			vertexCode : mlstr(function(){/*
-attribute vec3 vtx;
+		shader = new glutil.Program({
+			vertexCode : `
+in vec3 vtx;
 uniform mat4 mvMat;
 uniform mat4 projMat;
-varying vec3 pos;
+out vec3 pos;
 void main() {	
 	pos = vtx;
 	gl_Position = projMat * mvMat * vec4(vtx, 1.0); 
 }
-*/}),
-			fragmentPrecision : 'best',
-			fragmentCode : mlstr(function(){/*
-varying vec3 pos;
+`,
+			fragmentCode : `
+in vec3 pos;
 uniform sampler2D volTex, hsvTex;
 uniform float dz;
 uniform float solidThreshold;
 uniform float alphaGamma;
 uniform float valueAlpha;
+out vec4 fragColor;
 void main() { 
-	float value = texture2D(volTex, vec2(pos.xy * .5 + .5)).r;
-	gl_FragColor = texture2D(hsvTex, vec2(value, .5));
+	float value = texture(volTex, vec2(pos.xy * .5 + .5)).r;
+	fragColor = texture(hsvTex, vec2(value, .5));
 	if (value > solidThreshold) {
-		gl_FragColor.w = 1.;
+		fragColor.w = 1.;
 	} else {
 		//alpha gamma: dz := dz ^ (gamma / (1+epsilon - gamma))
-		gl_FragColor.w = pow(dz, alphaGamma / (1.0001 - alphaGamma));
+		fragColor.w = pow(dz, alphaGamma / (1.0001 - alphaGamma));
 		//valueAlpha = 0 : alpha is constant(alphaGamma)
 		//valueAlpha = 1 : alpha is a function of value such that value 0 <=> nothing, value 1 <=> original alpha
-		gl_FragColor.w *= mix(value, 1., valueAlpha);
+		fragColor.w *= mix(value, 1., valueAlpha);
 	}
 	
-	//gl_FragColor = vec4(texture2D(volTex, pos.xy*.5+.5).rgb, 1.);
+	//fragColor = vec4(texture(volTex, pos.xy*.5+.5).rgb, 1.);
 }
-*/}),
+`,
 			uniforms : {
 				dz : 1/wavefunction.dim,
 				volTex : 0,
@@ -84,7 +92,7 @@ void main() {
 
 		//create buffers
 
-		var vtxs = [
+		let vtxs = [
 			-1,1,0,
 			-1,-1,0,
 			1,1,0,
@@ -104,9 +112,9 @@ void main() {
 
 		//draw
 		
-		$(window).resize(resize);
+		window.addEventListener('resize', resize);
 		
-		var tmpRotMat = mat4.create();	
+		let tmpRotMat = mat4.create();	
 		mouse = new Mouse3D({
 			pressObj : canvas,
 			move : function(dx,dy) {
@@ -130,14 +138,14 @@ void main() {
 
 function factQuotient(top, bottom) {
 	if (top > bottom) {
-		var p = 1;
-		for (var i = bottom+1; i <= top; i++) {
+		let p = 1;
+		for (let i = bottom+1; i <= top; i++) {
 			p *= i;
 		}
 		return p;
 	} else {
-		var p = 1;
-		for (var i = top+1; i < bottom; i++) {
+		let p = 1;
+		for (let i = top+1; i < bottom; i++) {
 			p *= i;
 		}
 		return 1/p;
@@ -145,7 +153,7 @@ function factQuotient(top, bottom) {
 }
 
 // assocLegendreCosThetaTable[bottomIndex][topIndex]
-var associatedLegendreCosThetaTable = {
+let associatedLegendreCosThetaTable = {
 	'0' : {
 		'0' : function(theta) { return 1; }
 	},
@@ -191,11 +199,11 @@ function associatedLegendre(l,m,x) {
 		return Math.pow(-1, m) * factQuotient(l - m, l + m) * associatedLegendre(l,m,x);
 	}
 	
-	var pmm = 1.;
+	let pmm = 1.;
 	if (m > 0) {
-		var somx2 = Math.sqrt((1-x)*(1-x));
-		var fact = 1.;
-		for (var i = 1; i <= m; i++) {
+		let somx2 = Math.sqrt((1-x)*(1-x));
+		let fact = 1.;
+		for (let i = 1; i <= m; i++) {
 			pmm = -pmm * fact * somx2;
 			fact = fact + 2;
 		}
@@ -208,7 +216,7 @@ function associatedLegendre(l,m,x) {
 	if (l == m+1) {
 		return pmmp1;
 	}
-	for (var ll = m+2; ll >= 1; ll--) {
+	for (let ll = m+2; ll >= 1; ll--) {
 		pll = (x * (2 * ll - 1) * pmmp1 - (ll + m - 1) * pmm) / (ll - m);
 		pmm = pmmp1;
 		pmmp1 = pll;
@@ -217,38 +225,38 @@ function associatedLegendre(l,m,x) {
 }
 
 function sphericalHarmonic(result, theta, phi, l, m) {
-	var magn = Math.sqrt(
+	let magn = Math.sqrt(
 		(2*l+1) / (4*Math.PI)
 		* factQuotient(l-m, l+m)
 	) 
 	//* associatedLegendre(l,m,Math.cos(theta));
 	* associatedLegendreCosTheta(l,m,theta);
-	var arg = m * phi;
+	let arg = m * phi;
 	result[0] = magn * Math.cos(arg);
 	result[1] = magn * Math.sin(arg);
 }
 
 function ncr(n,k) {
-	var prod = 1;
-	for (var i = 1; i <= k; i++) {
+	let prod = 1;
+	for (let i = 1; i <= k; i++) {
 		prod *= (n - k + i) / i;
 	}
 	return prod;
 }
 
 function Laguerre(x, alpha, n) {
-	var sum = 0;
-	for (var i = 0; i <= n; i++) {
+	let sum = 0;
+	for (let i = 0; i <= n; i++) {
 		sum += Math.pow(-1, i) * ncr(n + alpha, n - 1) * Math.pow(x, i) / factQuotient(i,1);
 	}
 	return sum;
 }
 
 function hydrogen(result, r, theta, phi, n, l, m) {
-	var a0 = 1;	//.0529nm = hbar / (me * c * alpha)
-	var b = 2 / (n * a0);
-	var rho = b * r;
-	var magn = Math.sqrt(
+	let a0 = 1;	//.0529nm = hbar / (me * c * alpha)
+	let b = 2 / (n * a0);
+	let rho = b * r;
+	let magn = Math.sqrt(
 		b * b * b
 		* factQuotient(n-l-1, n+l) / (2*n)
 	) * Math.exp(-.5 * rho)
@@ -259,7 +267,7 @@ function hydrogen(result, r, theta, phi, n, l, m) {
 	result[1] *= magn;
 }
 
-var wavefunction = new function() {
+let wavefunction = new function() {
 	this.dim = 64;
 	this.n = 4;	//orbit param
 	this.l = 2;	//sh param
@@ -269,7 +277,7 @@ var wavefunction = new function() {
 	this.size = vec3.create();
 	vec3.sub(this.size, this.max, this.min);
 	this.init = function() {
-		this.hsvTex = new glutil.GradientTexture({
+		this.hsvTex = new glutil.Gradient.GradientTexture({
 			width : 256, 
 			colors : [
 				[0, 0, 0],
@@ -282,13 +290,13 @@ var wavefunction = new function() {
 			dontRepeat : true
 		});
 
-		//var data = new Uint8Array(this.dim * this.dim * 3);
+		//let data = new Uint8Array(this.dim * this.dim * 3);
 		this.slices = [[],[],[]];	//for each axii 
-		for (var dim = 0; dim < 3; dim++) {
-			var dim1 = (dim+1)%3;
-			var dim2 = (dim+2)%3;
-			for (var w = 0; w < this.dim; w++) {
-				var slice = {}; 
+		for (let dim = 0; dim < 3; dim++) {
+			let dim1 = (dim+1)%3;
+			let dim2 = (dim+2)%3;
+			for (let w = 0; w < this.dim; w++) {
+				let slice = {}; 
 				slice.tex = new glutil.Texture2D();
 				this.slices[dim].push(slice);
 			}
@@ -298,46 +306,46 @@ var wavefunction = new function() {
 	};
 
 	this.rebuild = function() {
-		$('#show-calculating').show();
-		$('#calculating').attr('value', '0');
+		show(ids.show_calculating);
+		ids.calculating.setAttribute('value', '0');
 		
 		this.minv = Infinity;
 		this.maxv = -Infinity;
-		var floatData = [];//new Float32Array(this.dim * this.dim); 
-		var result = [0,0];
+		let floatData = [];//new Float32Array(this.dim * this.dim); 
+		let result = [0,0];
 
 		if (this.building !== undefined) {
 			//interrupt the previous build 
 			clearInterval(this.building);
 		}
 
-		var x = vec3.create();
-		var thiz = this;
+		let x = vec3.create();
+		let thiz = this;
 		this.building = asyncfor({
 			start : 0,
 			end : 3 * this.dim, 
 			timeout : 100,
 			callback : function(q) {
-				var w = q % thiz.dim;
-				var dim = (q - w) / thiz.dim;
+				let w = q % thiz.dim;
+				let dim = (q - w) / thiz.dim;
 				if (floatData[dim] === undefined) floatData[dim] = [];
-				var dim1 = (dim+1)%3;
-				var dim2 = (dim+2)%3;
+				let dim1 = (dim+1)%3;
+				let dim2 = (dim+2)%3;
 			
 				floatData[dim][w] = new Float32Array(thiz.dim * thiz.dim);
-				var slice = thiz.slices[dim][w]; 
-				for (var u = 0; u < thiz.dim; u++) {
-					for (var v = 0; v < thiz.dim; v++) {
+				let slice = thiz.slices[dim][w]; 
+				for (let u = 0; u < thiz.dim; u++) {
+					for (let v = 0; v < thiz.dim; v++) {
 						/**/
 						x[dim] = (w+.5)/thiz.dim * (thiz.max[dim] - thiz.min[dim]) + thiz.min[dim];
 						x[dim1] = (u+.5)/thiz.dim * (thiz.max[dim1] - thiz.min[dim1]) + thiz.min[dim1];
 						x[dim2] = (v+.5)/thiz.dim * (thiz.max[dim2] - thiz.min[dim2]) + thiz.min[dim2];
-						var r = vec3.length(x);
-						var phi = Math.atan2(x[1], x[0]);
-						var theta = Math.acos(x[2] / r);
-						//var v = sphericalHarmonic(theta, phi, thiz.l, thiz.m);
+						let r = vec3.length(x);
+						let phi = Math.atan2(x[1], x[0]);
+						let theta = Math.acos(x[2] / r);
+						//let v = sphericalHarmonic(theta, phi, thiz.l, thiz.m);
 						hydrogen(result, r, theta, phi, thiz.n, thiz.l, thiz.m);
-						var value = Math.sqrt(result[0]*result[0] + result[1]*result[1]);
+						let value = Math.sqrt(result[0]*result[0] + result[1]*result[1]);
 						floatData[dim][w][u+thiz.dim*v] = value;
 						if (value < thiz.minv) thiz.minv = value;
 						if (value > thiz.maxv) thiz.maxv = value;
@@ -352,16 +360,16 @@ var wavefunction = new function() {
 						*/
 					}
 				}
-				$('#calculating').attr('value', 100*q/(3*thiz.dim-1));
+				ids.calculating.setAttribute('value', 100*q/(3*thiz.dim-1));
 			},
 			done : function() {
-				var byteData = new Uint8Array(thiz.dim * thiz.dim);
-				for (var dim = 0; dim < 3; dim++) {
-					for (var w = 0; w < thiz.dim; w++) {
-						for (var u = 0; u < thiz.dim * thiz.dim; ++u) {
+				let byteData = new Uint8Array(thiz.dim * thiz.dim);
+				for (let dim = 0; dim < 3; dim++) {
+					for (let w = 0; w < thiz.dim; w++) {
+						for (let u = 0; u < thiz.dim * thiz.dim; ++u) {
 							byteData[u] = parseInt((floatData[dim][w][u] - thiz.minv) / (thiz.maxv - thiz.minv) * 255);
 						}
-						var slice = thiz.slices[dim][w]; 
+						let slice = thiz.slices[dim][w]; 
 						slice.tex.bind();
 						slice.tex.setArgs({
 							width:thiz.dim,
@@ -381,161 +389,16 @@ var wavefunction = new function() {
 					}
 				}
 				thiz.ready = true;
-				$('#show-calculating').hide();
+				hide(ids.show_calculating);
 				glutil.draw();
 			}
 		});
 	};
 };
 
-var slideThreshold = 1.;
-var alphaGamma = .25;
-var valueAlpha = 0.;
-$(document).ready(function() {
-	$('#panelButton').click(function() {
-		var panel = $('#panel');	
-		if (panel.css('display') == 'none') {
-			panel.show();
-			$('#info').hide();
-		} else {
-			panel.hide();
-		}
-	});
-	$('#infoButton').click(function() {
-		var info = $('#info');
-		if (info.css('display') == 'none') {
-			info.show();
-			$('#panel').hide();
-		} else {
-			info.hide();
-		}
-	});
-	
-	
-	$('#solid-threshold-slider').slider({
-		range : 'max',
-		width : '200px',
-		min : 0,
-		max : 100,
-		value : 100*(1 - slideThreshold),
-		slide : function(event, ui) {
-			slideThreshold = 1 - ui.value/100;
-			glutil.draw();
-		}
-	});
-	$('#alpha-gamma-slider').slider({
-		range : 'max',
-		width : '200px',
-		min : 0,
-		max : 100,
-		value : 100*(1 - alphaGamma),
-		slide : function(event, ui) {
-			alphaGamma = 1 - ui.value/100;
-			glutil.draw();
-		}
-	});
-	$('#value-alpha-slider').slider({
-		range : 'max',
-		width : '200px',
-		min : 0,
-		max : 100,
-		value : 100*(1 - valueAlpha),
-		slide : function(event, ui) {
-			valueAlpha = 1 - ui.value/100;
-			glutil.draw();
-		}
-	});
-
-	R.init();
-
-	//N goes from 0 to 5, L goes from 0 to N-1, M goes from -L to L
-	var waveparams = {};
-	var permutations = $('#permutations');
-	for (var n = 0; n <= 5; ++n) {
-		for (var l = 0; l < n; ++l) {
-			for (var m = -l; m <= l; ++m) {
-				var text = 'N='+n+' L='+l+' M='+m;
-				var option = $('<option>', {text:text});
-				option.appendTo(permutations);
-				if (n == wavefunction.n && l == wavefunction.l && m == wavefunction.m) {
-					option.attr('selected', 'true');
-				}
-				waveparams[text] = {n:n, l:l, m:m};
-			}
-		}
-	}
-	permutations.change(function() {
-		var params = waveparams[permutations.val()];
-		wavefunction.n = params.n; 
-		wavefunction.l = params.l; 
-		wavefunction.m = params.m; 
-		wavefunction.rebuild(); 
-	});
-
-	glutil.ondraw = function() {
-		if (!wavefunction.ready) return;
-		
-		shader.setAttr('vtx', vtxBuf);
-		shader.setUniform('projMat', glutil.scene.projMat);
-
-		wavefunction.hsvTex.bind(1);
-		gl.activeTexture(gl.TEXTURE0);
-		
-		mat4.multiply(viewMat, glutil.scene.mvMat, rotMat);
-		//now pick the dir and order (front vs back)
-		// based on the major axis
-		// (highest z-component of each axis)
-		var dir = 0;
-		var bestZ = viewMat[2];
-		for (var i = 1; i < 3; i++) {
-			var z = viewMat[4*i+2];
-			if (Math.abs(z) > Math.abs(bestZ)) {
-				bestZ = z;
-				dir = i;
-			}
-		}
-
-		var firstI, lastI, stepI;
-		if (bestZ < 0) {
-			firstI = wavefunction.slices[dir].length-1;
-			lastI = -1;
-			stepI = -1;
-		} else {
-			firstI = 0;
-			lastI = wavefunction.slices[dir].length;
-			stepI = 1;
-		}
-
-		switch (dir) {
-		case 0://x-align: 
-			mat4.rotate(viewMat, viewMat, Math.PI/2, [0,1,0]);
-			mat4.rotate(viewMat, viewMat, Math.PI/2, [0,0,1]);
-			break;	
-		case 1:	//y-align:
-			mat4.rotate(viewMat, viewMat, Math.PI/2, [-1,0,0]);
-			mat4.rotate(viewMat, viewMat, Math.PI/2, [0,0,-1]);
-			break;
-		case 2:
-			break;	//z-aligned is default
-		}
-
-		shader.setUniforms({
-			solidThreshold : slideThreshold,
-			alphaGamma : alphaGamma,
-			valueAlpha : valueAlpha
-		});
-		for (var i = firstI; i != lastI; i+=stepI) {
-			mat4.translate(objMat, viewMat, [0,0,2*(i/(wavefunction.slices[dir].length-1))-1]);
-			var slice = wavefunction.slices[dir][i];
-			gl.bindTexture(gl.TEXTURE_2D, slice.tex.obj);
-			drawQuad(objMat);
-		}
-	}
-	
-	wavefunction.init();
-
-	resize();
-})
+let slideThreshold = 1.;
+let alphaGamma = .25;
+let valueAlpha = 0.;
 
 function resize() {
 	canvas.width = window.innerWidth;
@@ -543,15 +406,15 @@ function resize() {
 	glutil.resize();
 	glutil.draw();
 
-	var info = $('#info');
-	var width = window.innerWidth 
-		- parseInt(info.css('padding-left'))
-		- parseInt(info.css('padding-right'));
-	info.width(width);
-	var height = window.innerHeight
-		- parseInt(info.css('padding-top'))
-		- parseInt(info.css('padding-bottom'));
-	info.height(height - 32);
+	let info = ids.info;
+	let width = window.innerWidth 
+		- parseInt(info.style.paddingLeft)
+		- parseInt(info.style.paddingRight);
+	info.style.width = width+'px';
+	let height = window.innerHeight
+		- parseInt(info.style.paddingTop)
+		- parseInt(info.style.paddingBottom);
+	info.style.height = (height - 32)+'px';
 
 }
 
@@ -560,6 +423,128 @@ function drawQuad(mv) {
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);	//4 = vtxcount
 }
 
-var viewMat = mat4.create();	
-var objMat = mat4.create();
+let viewMat = mat4.create();	
+let objMat = mat4.create();
 
+ids.panelButton.addEventListener('click', e => { 
+	if (hidden(ids.panel)) {
+		show(ids.panel);
+		hide(ids.info);
+	} else {
+		hide(ids.panel);
+	}
+});
+ids.infoButton.addEventListener('click', e => {
+	if (hidden(ids.info)) {
+		show(ids.info);
+		hide(ids.panel);
+	} else {
+		hide(ids.info);
+	}
+});
+
+
+ids.solid_threshold_slider.value = 100*(1 - slideThreshold);
+ids.solid_threshold_slider.addEventListener('input', e => {
+	slideThreshold = 1 - ids.solid_threshold_slider.value/100;
+	glutil.draw();
+});
+ids.alpha_gamma_slider.value = 100*(1 - alphaGamma);
+ids.alpha_gamma_slider.addEventListener('input', e => {
+	alphaGamma = 1 - ids.alpha_gamma_slider.value/100;
+	glutil.draw();
+});
+ids.value_alpha_slider.value = 100*(1 - valueAlpha);
+ids.value_alpha_slider.addEventListener('input', e => {
+	valueAlpha = 1 - ids.value_alpha_slider.value/100;
+	glutil.draw();
+});
+
+R.init();
+
+//N goes from 0 to 5, L goes from 0 to N-1, M goes from -L to L
+const waveparams = {};
+const permutations = ids.permutations;
+for (let n = 0; n <= 5; ++n) {
+	for (let l = 0; l < n; ++l) {
+		for (let m = -l; m <= l; ++m) {
+			let text = 'N='+n+' L='+l+' M='+m;
+			let option = DOM('option', {text:text, appendTo:permutations});
+			if (n == wavefunction.n && l == wavefunction.l && m == wavefunction.m) {
+				option.setAttribute('selected', 'true');
+			}
+			waveparams[text] = {n:n, l:l, m:m};
+		}
+	}
+}
+permutations.addEventListener('change', e => {
+	let params = waveparams[permutations.value];
+	wavefunction.n = params.n; 
+	wavefunction.l = params.l; 
+	wavefunction.m = params.m; 
+	wavefunction.rebuild(); 
+});
+
+glutil.ondraw = function() {
+	if (!wavefunction.ready) return;
+	
+	shader.setAttr('vtx', vtxBuf);
+	shader.setUniform('projMat', glutil.scene.projMat);
+
+	wavefunction.hsvTex.bind(1);
+	gl.activeTexture(gl.TEXTURE0);
+	
+	mat4.multiply(viewMat, glutil.scene.mvMat, rotMat);
+	//now pick the dir and order (front vs back)
+	// based on the major axis
+	// (highest z-component of each axis)
+	let dir = 0;
+	let bestZ = viewMat[2];
+	for (let i = 1; i < 3; i++) {
+		let z = viewMat[4*i+2];
+		if (Math.abs(z) > Math.abs(bestZ)) {
+			bestZ = z;
+			dir = i;
+		}
+	}
+
+	let firstI, lastI, stepI;
+	if (bestZ < 0) {
+		firstI = wavefunction.slices[dir].length-1;
+		lastI = -1;
+		stepI = -1;
+	} else {
+		firstI = 0;
+		lastI = wavefunction.slices[dir].length;
+		stepI = 1;
+	}
+
+	switch (dir) {
+	case 0://x-align: 
+		mat4.rotate(viewMat, viewMat, Math.PI/2, [0,1,0]);
+		mat4.rotate(viewMat, viewMat, Math.PI/2, [0,0,1]);
+		break;	
+	case 1:	//y-align:
+		mat4.rotate(viewMat, viewMat, Math.PI/2, [-1,0,0]);
+		mat4.rotate(viewMat, viewMat, Math.PI/2, [0,0,-1]);
+		break;
+	case 2:
+		break;	//z-aligned is default
+	}
+
+	shader.setUniforms({
+		solidThreshold : slideThreshold,
+		alphaGamma : alphaGamma,
+		valueAlpha : valueAlpha
+	});
+	for (let i = firstI; i != lastI; i+=stepI) {
+		mat4.translate(objMat, viewMat, [0,0,2*(i/(wavefunction.slices[dir].length-1))-1]);
+		let slice = wavefunction.slices[dir][i];
+		gl.bindTexture(gl.TEXTURE_2D, slice.tex.obj);
+		drawQuad(objMat);
+	}
+}
+
+wavefunction.init();
+
+resize();

@@ -1,9 +1,6 @@
 Hydrogen atom wavefunction visualizer
-dependencies:
-- jquery 1.10
-- jquery ui 1.10
-- gl-matrix
-- webgl-debug
+
+[Launch](https://thenumbernine.github.io/wavefunction/)
 
 Built off a slice-based volume visualizer, which was built off a raytraced volumizer.
 

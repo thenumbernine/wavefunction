@@ -22,7 +22,13 @@ let R = new function() {
 		
 		//build dom
 
-		canvas = DOM('canvas', {appendTo:document.body});
+		canvas = DOM('canvas', {
+			css : {
+				zIndex : '-1',
+				position : 'absolute',
+			},
+			appendTo : document.body,
+		});
 
 		//get gl context
 

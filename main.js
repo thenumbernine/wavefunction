@@ -1,5 +1,6 @@
+import {Canvas, Option} from '/js/dom.js';
 import {vec3, mat4} from '/js/gl-matrix-3.4.1/index.js';
-import {DOM, getIDs, removeFromParent, show, hide, hidden, asyncfor} from '/js/util.js';
+import {getIDs, removeFromParent, show, hide, hidden, asyncfor} from '/js/util.js';
 import {GLUtil} from '/js/gl-util.js';
 import {makeGradient} from '/js/gl-util-Gradient.js';
 import {Mouse3D} from '/js/mouse3d.js';
@@ -22,8 +23,8 @@ let R = new function() {
 		
 		//build dom
 
-		canvas = DOM('canvas', {
-			css : {
+		canvas = Canvas({
+			style : {
 				zIndex : '-1',
 				position : 'absolute',
 			},
@@ -475,7 +476,7 @@ for (let n = 0; n <= 5; ++n) {
 	for (let l = 0; l < n; ++l) {
 		for (let m = -l; m <= l; ++m) {
 			let text = 'N='+n+' L='+l+' M='+m;
-			let option = DOM('option', {text:text, appendTo:permutations});
+			let option = Option({innerText:text, appendTo:permutations});
 			if (n == wavefunction.n && l == wavefunction.l && m == wavefunction.m) {
 				option.setAttribute('selected', 'true');
 			}

@@ -1,6 +1,6 @@
 import {Canvas, Option} from '/js/dom.js';
 import {vec3, mat4} from '/js/gl-matrix-3.4.1/index.js';
-import {getIDs, removeFromParent, show, hide, hidden, asyncfor} from '/js/util.js';
+import {clamp, getIDs, removeFromParent, show, hide, hidden, asyncfor} from '/js/util.js';
 import {GLUtil} from '/js/gl-util.js';
 import {makeGradient} from '/js/gl-util-Gradient.js';
 import {Mouse3D} from '/js/mouse3d.js';
@@ -135,7 +135,7 @@ void main() {
 			},
 			zoom : function(dz) {
 				glutil.view.fovY *= Math.exp(-.0003 * dz);
-				glutil.view.fovY = Math.clamp(glutil.view.fovY, 1, 179);
+				glutil.view.fovY = clamp(glutil.view.fovY, 1, 179);
 				glutil.updateProjection();
 				glutil.draw();
 			}

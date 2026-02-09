@@ -1,8 +1,8 @@
 import {Canvas, Option} from '/js/dom.js';
 import {vec3, mat4} from '/js/gl-matrix-3.4.1/index.js';
 import {clamp, getIDs, removeFromParent, show, hide, hidden, asyncfor} from '/js/util.js';
-import {GLUtil} from '/js/gl-util.js';
-import {makeGradient} from '/js/gl-util-Gradient.js';
+import {GLUtil} from '/js/gl/gl.js';
+import {makeGradient} from '/js/gl/Gradient.js';
 import {Mouse3D} from '/js/mouse3d.js';
 const ids = getIDs();
 const urlparams = new URLSearchParams(window.location.search);
